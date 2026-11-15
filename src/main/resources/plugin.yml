@@ -1,0 +1,33 @@
+name: StashRadar
+version: '${version}'
+main: com.cosmiclogic.stashradar.paper.StashRadarPlugin
+api-version: '1.13'
+depend: [LogicLib]
+author: CosmicLogic
+website: https://www.curseforge.com/minecraft/bukkit-plugins/stash-radar
+description: Find which nearby chest, barrel or shulker box has your item.
+
+commands:
+  find:
+    description: Highlight nearby containers that have an item.
+    usage: /find <item> [range]
+    aliases: [stashfind, sfind]
+    permission: stashradar.find
+  stashradar:
+    description: Stash Radar admin commands.
+    usage: /stashradar <reload|selftest>
+    aliases: [sradar]
+
+permissions:
+  stashradar.find:
+    description: Use /find.
+    default: true
+  stashradar.bypass.cooldown:
+    description: No cooldown between searches.
+    default: op
+  stashradar.bypass.locked:
+    description: Also search containers locked with a key/lock.
+    default: op
+  stashradar.admin:
+    description: /stashradar reload.
+    default: op

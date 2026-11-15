@@ -1,0 +1,2 @@
+# CurseForge project id of Stash Radar (Bukkit/Paper plugin)
+1808926

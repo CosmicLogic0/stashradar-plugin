@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+}
+
+base {
+    archivesName = 'stashradar-paper'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'PaperMC'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+// LogicLib for Paper (read-only dependency). CI downloads the released jar into libs/ before building.
+def logicLibJar = file("libs/logiclib-paper-${logiclib_version}.jar")
+
+dependencies {
+    // Same trick as LogicLib: compiled against the 1.13.2 API, so ONE jar runs on Paper 1.12.2 -> 26.x.
+    // Anything newer than 1.12.2 is guarded at runtime.
+    compileOnly 'com.destroystokyo.paper:paper-api:1.13.2-R0.1-SNAPSHOT'
+    compileOnly files(logicLibJar)
+}
+
+tasks.register('checkLogicLib') {
+    doLast {
+        if (!logicLibJar.exists()) {
+            throw new GradleException("Missing ${logicLibJar}. Download it with: curl -fsSL -o ${logicLibJar} " +
+                    "https://raw.githubusercontent.com/CosmicLogic0/logiclib-paper/dist/logiclib-paper-${logiclib_version}.jar")
+        }
+    }
+}
+compileJava.dependsOn checkLogicLib
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // Java 8 bytecode so 1.12.2 / 1.16.5 servers (Java 8) can load it too.
+    options.release = 8
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}

@@ -1,0 +1,38 @@
+# Stash Radar for Paper
+# Searches containers in chunks that are already loaded around the player. It never loads chunks.
+
+# Search radius in blocks when the player doesn't give one.
+range: 16
+# Largest radius a player may ask for with /find <item> <range>.
+max-range: 32
+
+# Seconds a player must wait between searches (players with stashradar.bypass.cooldown skip this).
+cooldown-seconds: 5
+
+# Which containers are searched. SHULKER_BOX means every color.
+# Also allowed: HOPPER, DROPPER, DISPENSER, FURNACE, BLAST_FURNACE, SMOKER, BREWING_STAND
+containers:
+  - CHEST
+  - TRAPPED_CHEST
+  - BARREL
+  - SHULKER_BOX
+
+# Also look inside shulker boxes that are stored as items in other containers.
+search-inside-shulker-items: true
+
+# How long the particle outlines stay visible, and their color (hex).
+highlight-seconds: 12
+highlight-color: '#3CFF7A'
+# At most this many containers get outlines (the nearest ones). Protects the server and the player's FPS.
+max-highlights: 24
+
+messages:
+  prefix: '&8[&aStash Radar&8]'
+  usage: '&7Usage: &f/find <item> [range]'
+  unknown-item: '&cNo item called &f{input}&c.'
+  did-you-mean: '&7Did you mean: &f{list}'
+  cooldown: '&7Wait &f{seconds}s &7before searching again.'
+  none: '&7No &f{item} &7in containers within &f{range} &7blocks.'
+  found: '&aFound &f{count} {item} &ain &f{containers} &acontainer(s). Nearest: &f{distance} &ablocks {direction}.'
+  players-only: '&cOnly players can use /find.'
+  reloaded: '&aConfig reloaded.'
