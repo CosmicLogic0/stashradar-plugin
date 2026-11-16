@@ -2,6 +2,8 @@
 
 **`/find diamond`. That's it.**
 
+> ⚠️ **Requires [LogicLib Plugin](https://www.curseforge.com/minecraft/bukkit-plugins/logiclib-plugin).** Put it in your `plugins` folder too.
+
 Your players lose things in chests all the time. **Stash Radar Plugin** lets them type `/find` and see exactly which nearby chests, barrels and shulker boxes have the item. **This is the server-plugin version of the [Stash Radar](https://www.curseforge.com/minecraft/mc-mods/stash-radar) mod.** Players need **no mods**: it works with a normal Minecraft client.
 
 ---
@@ -38,7 +40,7 @@ Range, max range, cooldown, which containers are searched, highlight time, color
 
 ## 📦 Requirements
 - **Paper** 1.12.2, 1.16.5, 1.18.2, 1.19.2, 1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3 (every one tested on a real server)
-- **Requires LogicLib Plugin** (shared code for my plugins)
+- **Requires [LogicLib Plugin](https://www.curseforge.com/minecraft/bukkit-plugins/logiclib-plugin)** (shared code for my plugins). The plugin won't start without it.
 - What's different from the mod: no search screen (tab-complete instead) and no modded containers. Everything else works the same.
 
 Source and bug reports: https://github.com/CosmicLogic0/stashradar-plugin
