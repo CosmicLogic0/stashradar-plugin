@@ -36,8 +36,12 @@ final class SelfTest {
             int x = spawn.getBlockX() + 3;
             int z = spawn.getBlockZ() + 3;
             int y = Math.min(world.getMaxHeight() - 10, 200);
-            world.getChunkAt(x >> 4, z >> 4).load(true);
-            world.getChunkAt((x + 40) >> 4, z >> 4).load(true);
+            // Only chunks right next to spawn: they already exist, so nothing has to be generated.
+            for (int cx : new int[]{x >> 4, (x + 20) >> 4}) {
+                if (!world.isChunkLoaded(cx, z >> 4)) {
+                    world.getChunkAt(cx, z >> 4).load(false);
+                }
+            }
 
             // A chest with 7 diamonds and a purple shulker box item holding 3 emeralds.
             Block chest = place(world, x, y, z, Material.CHEST, placed);
@@ -63,7 +67,7 @@ final class SelfTest {
             expectedDiamonds += 4;
 
             // A chest far outside the search range: must NOT be found.
-            Block far = place(world, x + 40, y, z, Material.CHEST, placed);
+            Block far = place(world, x + 20, y, z, Material.CHEST, placed);
             inventory(far).addItem(new ItemStack(Material.DIAMOND, 64));
 
             Location from = new Location(world, x + 0.5, y + 0.5, z - 3.5);
@@ -93,8 +97,8 @@ final class SelfTest {
                     ContainerSearch.search(from, Material.DIAMOND, 8, chestsOnly).size());
 
             checks++;
-            expect(problems, "far chest found with a big range", expectedDiamondContainers + 1,
-                    ContainerSearch.search(from, Material.DIAMOND, 48, options).size());
+            expect(problems, "far chest found with a bigger range", expectedDiamondContainers + 1,
+                    ContainerSearch.search(from, Material.DIAMOND, 24, options).size());
 
             checks++;
             expectTrue(problems, "item name 'minecraft:diamond'", ItemNames.find("minecraft:diamond") == Material.DIAMOND);
