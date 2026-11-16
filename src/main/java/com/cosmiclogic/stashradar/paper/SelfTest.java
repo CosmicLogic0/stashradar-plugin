@@ -38,8 +38,10 @@ final class SelfTest {
         try {
             World world = Bukkit.getWorlds().get(0);
             Location spawn = world.getSpawnLocation();
-            int x = spawn.getBlockX() + 3;
-            int z = spawn.getBlockZ() + 3;
+            // Middle of the spawn chunk: every test block (x-2..x+2, z-6..z+2) stays inside this one chunk,
+            // which is already loaded, so nothing has to be loaded or generated (1.20.1 froze on that).
+            int x = (spawn.getBlockX() >> 4) * 16 + 8;
+            int z = (spawn.getBlockZ() >> 4) * 16 + 8;
             int y = Math.min(world.getMaxHeight() - 10, 200);
             // Only chunks right next to spawn: they already exist, so nothing has to be generated.
             for (int cx : new int[]{x >> 4, (x + 20) >> 4}) {
