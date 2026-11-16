@@ -4,7 +4,7 @@
 
 - One jar for **Paper 1.12.2 → 26.3** (Java 8 bytecode, compiled against the 1.13.2 API, newer code is guarded).
 - Needs **LogicLib for Paper** (`depend: [LogicLib]`), used for config, chat text, version checks and per-player particles.
-- The Forge/NeoForge mod is in [stash-radar](https://github.com/CosmicLogic0/stash-radar).
+- The Forge/NeoForge mod is in [stashradar](https://github.com/CosmicLogic0/stashradar).
 
 ## Commands and permissions
 | Command | Permission | Default |
