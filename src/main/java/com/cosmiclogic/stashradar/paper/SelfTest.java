@@ -6,12 +6,17 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Lockable;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -106,6 +111,38 @@ final class SelfTest {
             expectTrue(problems, "item name 'Diamond Block'", ItemNames.find("Diamond Block") == Material.DIAMOND_BLOCK);
             checks++;
             expectTrue(problems, "suggestions for 'diam'", ItemNames.suggest("diam", 10).contains("diamond"));
+            checks++;
+            expectTrue(problems, "direction text (south)",
+                    "south".equals(StashRadarPlugin.direction(from, diamonds.get(0))));
+
+            // Locked containers are skipped unless the player has stashradar.bypass.locked.
+            Block locked = place(world, x, y, z - 6, Material.CHEST, placed);
+            inventory(locked).addItem(new ItemStack(Material.DIAMOND, 1));
+            if (lock(locked)) {
+                ContainerSearch.Options noLocked = new ContainerSearch.Options(options.containers, true, false);
+                checks++;
+                expect(problems, "locked chest skipped without bypass", expectedDiamondContainers,
+                        ContainerSearch.search(from, Material.DIAMOND, 8, noLocked).size());
+                checks++;
+                expect(problems, "locked chest found with bypass", expectedDiamondContainers + 1,
+                        ContainerSearch.search(from, Material.DIAMOND, 8, options).size());
+            }
+
+            // Config file, permission defaults (op vs everyone) and /stashradar reload.
+            checks++;
+            expectTrue(problems, "config.yml created", new File(plugin.getDataFolder(), "config.yml").isFile());
+            checks++;
+            expectTrue(problems, "stashradar.find is for everyone", permDefault("stashradar.find") == PermissionDefault.TRUE);
+            checks++;
+            expectTrue(problems, "stashradar.bypass.cooldown is op only", permDefault("stashradar.bypass.cooldown") == PermissionDefault.OP);
+            checks++;
+            expectTrue(problems, "stashradar.bypass.locked is op only", permDefault("stashradar.bypass.locked") == PermissionDefault.OP);
+            checks++;
+            expectTrue(problems, "stashradar.admin is op only", permDefault("stashradar.admin") == PermissionDefault.OP);
+            checks++;
+            expectTrue(problems, "/stashradar reload runs", Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "stashradar reload"));
+            checks++;
+            expectTrue(problems, "/find is registered", plugin.getServer().getPluginCommand("find") != null);
         } catch (Throwable t) {
             problems.add("exception " + t);
         } finally {
@@ -128,6 +165,27 @@ final class SelfTest {
                 plugin.getLogger().warning("Stash Radar self-test check FAILED: " + p);
             }
             plugin.getLogger().warning("Stash Radar self-test FAILED (" + problems.size() + " of " + checks + ")");
+        }
+    }
+
+    private static PermissionDefault permDefault(String name) {
+        Permission perm = Bukkit.getPluginManager().getPermission(name);
+        return perm == null ? null : perm.getDefault();
+    }
+
+    /** Vanilla lock ("key" item name). False when this server version has no lock API, so the check is skipped. */
+    private static boolean lock(Block block) {
+        try {
+            BlockState state = block.getState();
+            if (!(state instanceof Lockable)) {
+                return false;
+            }
+            ((Lockable) state).setLock("stashradar-test-key");
+            state.update(true);
+            BlockState again = block.getState();
+            return again instanceof Lockable && ((Lockable) again).isLocked();
+        } catch (Throwable t) {
+            return false;
         }
     }
 
