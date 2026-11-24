@@ -79,6 +79,7 @@ jobs:
             -- java -Xmx1500M -jar paper.jar nogui
       - name: Restart with a 1.0 config.yml (upgrade keeps the owner's choices) and an older LogicLib Plugin
         run: |
+          set -o pipefail
           # 1) Same world again with a 1.0-style config: copper chests added, own range kept, still passes.
           printf 'range: 20\nmax-range: 40\ncontainers:\n- CHEST\n- BARREL\nmessages:\n  prefix: "&8[&bMy Radar&8]"\n' > server/plugins/StashRadar/config.yml
           mv server/server.log server/server-first.log
