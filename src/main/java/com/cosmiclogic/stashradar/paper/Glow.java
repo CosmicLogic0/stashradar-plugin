@@ -58,6 +58,9 @@ final class Glow {
                     call(Entity.class, e, "setPersistent", new Class<?>[]{boolean.class}, false);
                     call(BLOCK_DISPLAY, e, "setBlock", new Class<?>[]{find("org.bukkit.block.data.BlockData")}, data);
                     call(BLOCK_DISPLAY, e, "setGlowColorOverride", new Class<?>[]{Color.class}, color);
+                    // A display sitting inside a block gets light level 0 there and drew as a black box. Shrink it a
+                    // little so the real block hides it (only the glow outline shows) and light it fully anyway.
+                    hideInside(e);
                     ((Entity) e).setGlowing(true);
                     return null;
                 }
@@ -65,6 +68,38 @@ final class Glow {
             return (Entity) SPAWN.invoke(world, at, BLOCK_DISPLAY, setup);
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /** Scale 0.96 around the block's center, full brightness. Reflection: JOML and Display exist from 1.19.4. */
+    private static void hideInside(Object display) {
+        try {
+            Class<?> v = Class.forName("org.joml.Vector3f");
+            Class<?> q = Class.forName("org.joml.Quaternionf");
+            Class<?> tr = Class.forName("org.bukkit.util.Transformation");
+            Object move = v.getConstructor(float.class, float.class, float.class).newInstance(0.02f, 0.02f, 0.02f);
+            Object scale = v.getConstructor(float.class, float.class, float.class).newInstance(0.96f, 0.96f, 0.96f);
+            Object transformation = tr.getConstructor(v, q, v, q).newInstance(move, q.getConstructor().newInstance(), scale,
+                    q.getConstructor().newInstance());
+            Class<?> displayType = Class.forName("org.bukkit.entity.Display");
+            displayType.getMethod("setTransformation", tr).invoke(display, transformation);
+            Class<?> brightness = Class.forName("org.bukkit.entity.Display$Brightness");
+            displayType.getMethod("setBrightness", brightness).invoke(display,
+                    brightness.getConstructor(int.class, int.class).newInstance(15, 15));
+        } catch (Throwable ignored) {
+            // older API: the glow still works
+        }
+    }
+
+    /** Scale of the glow display (the self-test checks it). */
+    static float scaleOf(Entity glow) {
+        try {
+            Class<?> displayType = Class.forName("org.bukkit.entity.Display");
+            Object t = displayType.getMethod("getTransformation").invoke(glow);
+            Object scale = t.getClass().getMethod("getScale").invoke(t);
+            return (Float) scale.getClass().getField("x").get(scale);
+        } catch (Throwable t) {
+            return -1;
         }
     }
 

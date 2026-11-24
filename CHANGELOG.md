@@ -1,5 +1,10 @@
 # Stash Radar for Paper changelog
 
+## 1.1.1
+
+### Fixed
+- Glow through walls (1.19.4+): the glowing copy of the container showed as a black box over the real one when you were a few blocks away. It now sits just inside the block, so only the glow outline shows.
+
 ## 1.1.0
 
 ### New

@@ -223,6 +223,8 @@ final class SelfTest {
                 org.bukkit.entity.Entity glow = Glow.spawn(chest, org.bukkit.Color.LIME);
                 checks++;
                 expectTrue(problems, "glow entity spawned, hidden from other players", glow != null && Glow.hiddenByDefault(glow));
+                checks++;
+                expectTrue(problems, "glow display sits inside the block (no black box)", glow != null && Math.abs(Glow.scaleOf(glow) - 0.96f) < 0.001f);
                 if (glow != null) {
                     glow.remove();
                     checks++;
