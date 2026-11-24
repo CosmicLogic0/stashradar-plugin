@@ -204,15 +204,17 @@ final class SelfTest {
                 }
             }
             if (nether != null) {
-                nether.getChunkAt(0, 0).load(true);
-                Block netherChest = place(nether, 8, 100, 8, Material.CHEST, placed);
+                // Next to the Nether spawn, whose chunks are already loaded (making new Nether chunks during the
+                // test made old Paper's watchdog complain).
+                int nx = nether.getSpawnLocation().getBlockX(), nz = nether.getSpawnLocation().getBlockZ();
+                Block netherChest = place(nether, nx, 100, nz, Material.CHEST, placed);
                 inventory(netherChest).addItem(new ItemStack(Material.GOLD_INGOT, 9));
                 checks++;
                 expect(problems, "gold in a Nether chest, searched in the Nether", 9,
-                        total(ContainerSearch.search(new Location(nether, 8.5, 100.5, 5.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options)));
+                        total(ContainerSearch.search(new Location(nether, nx + 0.5, 100.5, nz - 2.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options)));
                 checks++;
                 expect(problems, "the Nether chest is not found from the overworld", 0,
-                        ContainerSearch.search(new Location(world, 8.5, 100.5, 5.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options).size());
+                        ContainerSearch.search(new Location(world, nx + 0.5, 100.5, nz - 2.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options).size());
             }
 
             checks++;
