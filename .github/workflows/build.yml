@@ -77,6 +77,26 @@ jobs:
             "Stash Radar .* running on Minecraft" \
             "Stash Radar self-test PASSED" \
             -- java -Xmx1500M -jar paper.jar nogui
+      - name: Restart with a 1.0 config.yml (upgrade keeps the owner's choices) and an older LogicLib Plugin
+        run: |
+          # 1) Same world again with a 1.0-style config: copper chests added, own range kept, still passes.
+          printf 'range: 20\nmax-range: 40\ncontainers:\n- CHEST\n- BARREL\nmessages:\n  prefix: "&8[&bMy Radar&8]"\n' > server/plugins/StashRadar/config.yml
+          mv server/server.log server/server-first.log
+          TEST_COMMANDS="stashradar selftest" ci/server-test.sh server "config.yml updated to version 2" "Stash Radar self-test PASSED" \
+            -- java -Xmx1500M -jar paper.jar nogui | tail -3
+          python3 - <<'PY'
+          import re, sys
+          t = open('server/plugins/StashRadar/config.yml').read()
+          ok = re.search(r'^range: 20$', t, re.M) and re.search(r'^max-range: 40$', t, re.M) and 'COPPER_CHEST' in t \
+               and 'My Radar' in t and re.search(r'^config-version: 2$', t, re.M) and 'glow-through-walls' in t
+          print(t[:600]); sys.exit(0 if ok else 1)
+          PY
+          # 2) LogicLib Plugin 0.1.0: Stash Radar must say it needs 0.2.0 and turn itself off (no errors).
+          curl -fsSL -o server/plugins/logiclib-paper.jar "https://raw.githubusercontent.com/CosmicLogic0/logiclib-paper/dist/logiclib-paper-0.1.0.jar"
+          mv server/server.log server/server-upgrade.log
+          CHECK_PATTERN="xxxx-nothing" ci/server-test.sh server "Stash Radar needs LogicLib Plugin 0.2.0 or newer" \
+            -- java -Xmx1500M -jar paper.jar nogui | tail -3
+          if grep -Ei "exception|NoSuchMethod|NoClassDef" server/server.log | grep -i stashradar; then echo "::error::errors with the old LogicLib Plugin"; exit 1; fi
 
   # After every test passes: print the jar's checksum and base64 so Claude
   # (whose workspace can't download artifacts) can take the exact tested jar.
