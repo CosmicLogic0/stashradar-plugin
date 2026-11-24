@@ -45,8 +45,8 @@ final class Tags {
             @SuppressWarnings("deprecation")
             NamespacedKey key = new NamespacedKey(ns, id);
             final Object tag = GET_TAG.invoke(null, "items", key, Material.class);
-            if (tag == null) {
-                return null;
+            if (tag == null || ((java.util.Collection<?>) TAG.getMethod("getValues").invoke(tag)).isEmpty()) {
+                return null;   // some versions hand back an empty tag for a name that doesn't exist
             }
             final Method isTagged = TAG.getMethod("isTagged", org.bukkit.Keyed.class);
             return new ContainerSearch.Matcher() {
