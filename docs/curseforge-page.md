@@ -2,7 +2,7 @@
 
 **`/find diamond`. That's it.**
 
-> ⚠️ **Requires [LogicLib Plugin](https://www.curseforge.com/minecraft/bukkit-plugins/logiclib-plugin).** Put it in your `plugins` folder too.
+⚠️ Requires [LogicLib Plugin](https://www.curseforge.com/minecraft/bukkit-plugins/logiclib-plugin)
 
 Your players lose things in chests all the time. **Stash Radar Plugin** lets them type `/find` and see exactly which nearby chests, barrels and shulker boxes have the item. **This is the server-plugin version of the [Stash Radar](https://www.curseforge.com/minecraft/mc-mods/stash-radar) mod.** Players need **no mods**: it works with a normal Minecraft client.
 
