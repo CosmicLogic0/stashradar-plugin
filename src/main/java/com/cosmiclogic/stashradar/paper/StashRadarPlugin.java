@@ -140,7 +140,10 @@ public final class StashRadarPlugin extends JavaPlugin implements Listener, TabC
             return true;
         }
         if (sub.equals("selftest") && sender instanceof ConsoleCommandSender) {
-            SelfTest.run(this, options(true));
+            // The bundled default container list, not the server's own (an owner may have changed it).
+            List<String> defaults = getConfig().getDefaults() != null ? getConfig().getDefaults().getStringList("containers")
+                    : Arrays.asList("CHEST", "TRAPPED_CHEST", "BARREL", "SHULKER_BOX", "COPPER_CHEST");
+            SelfTest.run(this, new ContainerSearch.Options(defaults, true, true, true));
             return true;
         }
         LogicText.send(sender, prefix(), "&7Stash Radar " + getDescription().getVersion() + " server commands:");
