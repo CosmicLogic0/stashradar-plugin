@@ -9,26 +9,33 @@ max-range: 32
 # Seconds a player must wait between searches (players with stashradar.bypass.cooldown skip this).
 cooldown-seconds: 5
 
-# Which containers are searched. SHULKER_BOX means every color.
+# Which containers are searched. SHULKER_BOX means every color, COPPER_CHEST every copper chest (1.21.9+).
 # Also allowed: HOPPER, DROPPER, DISPENSER, FURNACE, BLAST_FURNACE, SMOKER, BREWING_STAND
 containers:
   - CHEST
   - TRAPPED_CHEST
   - BARREL
   - SHULKER_BOX
+  - COPPER_CHEST
 
 # Also look inside shulker boxes that are stored as items in other containers.
 search-inside-shulker-items: true
+# Also find items shown in item frames and glow item frames.
+search-item-frames: true
+# Also tell players how many they have in their own ender chest.
+search-ender-chest: true
 
 # How long the particle outlines stay visible, and their color (hex).
 highlight-seconds: 12
 highlight-color: '#3CFF7A'
 # At most this many containers get outlines (the nearest ones). Protects the server and the player's FPS.
 max-highlights: 24
+# Far-away results also glow through walls (Minecraft 1.19.4+). Only the searching player sees it.
+glow-through-walls: true
 
 messages:
   prefix: '&8[&aStash Radar&8]'
-  usage: '&7Usage: &f/find <item> [range]'
+  usage: '&7Usage: &f/find <item> [range]&7, &f/find #<tag> [range]&7, &f/find name <text> [range]'
   unknown-item: '&cNo item called &f{input}&c.'
   did-you-mean: '&7Did you mean: &f{list}'
   cooldown: '&7Wait &f{seconds}s &7before searching again.'
@@ -36,3 +43,11 @@ messages:
   found: '&aFound &f{count} {item} &ain &f{containers} &acontainer(s). Nearest: &f{distance} &ablocks {direction}.'
   players-only: '&cOnly players can use /find.'
   reloaded: '&aConfig reloaded.'
+  range-limited: '&7This server searches at most &f{range} &7blocks, so that''s what I used.'
+  try-bigger: '&8Try a bigger range (up to {max}).'
+  listed: ' &f{count} in {container} &7at {x}, {y}, {z} ({distance} blocks {direction})'
+  more: ' &7...and {more} more, all outlined.'
+  ender: ' &dAlso {count} in your ender chest.'
+  ender-only: '&dYou have {count} in your ender chest.'
+  no-tags: '&cItem tags need Minecraft 1.13 or newer.'
+  unknown-tag: '&cNo item tag called &f{input}&c.'

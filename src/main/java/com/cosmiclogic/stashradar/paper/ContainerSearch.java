@@ -8,6 +8,8 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Lockable;
 import org.bukkit.block.ShulkerBox;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -52,8 +54,9 @@ public final class ContainerSearch {
         public final List<String> containers;
         public final boolean insideShulkerItems;
         public final boolean includeLocked;
+        public final boolean itemFrames;
 
-        public Options(List<String> containers, boolean insideShulkerItems, boolean includeLocked) {
+        public Options(List<String> containers, boolean insideShulkerItems, boolean includeLocked, boolean itemFrames) {
             List<String> upper = new ArrayList<String>();
             for (String c : containers) {
                 upper.add(c.trim().toUpperCase(Locale.ROOT));
@@ -61,14 +64,59 @@ public final class ContainerSearch {
             this.containers = upper;
             this.insideShulkerItems = insideShulkerItems;
             this.includeLocked = includeLocked;
+            this.itemFrames = itemFrames;
         }
+    }
+
+    /** What we look for: one item, a tag ("#logs") or a name ("sword"). */
+    public interface Matcher {
+        boolean test(ItemStack stack);
+    }
+
+    public static Matcher of(final Material item) {
+        return new Matcher() {
+            @Override
+            public boolean test(ItemStack stack) {
+                return stack.getType() == item;
+            }
+        };
+    }
+
+    /** Items whose shown name (a custom name too) or id contains the text, ignoring case and colors. */
+    public static Matcher named(String text) {
+        final String q = text.trim().toLowerCase(Locale.ROOT);
+        return new Matcher() {
+            @Override
+            public boolean test(ItemStack stack) {
+                if (q.isEmpty()) {
+                    return false;
+                }
+                if (ItemNames.pretty(stack.getType()).toLowerCase(Locale.ROOT).contains(q)
+                        || stack.getType().name().toLowerCase(Locale.ROOT).contains(q.replace(' ', '_'))) {
+                    return true;
+                }
+                try {
+                    if (stack.hasItemMeta() && stack.getItemMeta().hasDisplayName()) {
+                        return org.bukkit.ChatColor.stripColor(stack.getItemMeta().getDisplayName()).toLowerCase(Locale.ROOT).contains(q);
+                    }
+                } catch (Throwable ignored) {
+                    // odd item data
+                }
+                return false;
+            }
+        };
+    }
+
+    /** How many matching items are in a player's own inventory-like container (the ender chest). */
+    public static int count(Inventory inventory, Matcher match, boolean insideShulkerItems) {
+        return inventory == null ? 0 : count(inventory.getContents(), match, insideShulkerItems, 0);
     }
 
     private ContainerSearch() {
     }
 
-    /** All containers within {@code range} blocks of {@code center} that hold {@code item}, nearest first. */
-    public static List<Hit> search(Location center, Material item, int range, Options options) {
+    /** All containers (and item frames) within {@code range} blocks of {@code center} with matching items, nearest first. */
+    public static List<Hit> search(Location center, Matcher item, int range, Options options) {
         List<Hit> hits = new ArrayList<Hit>();
         World world = center.getWorld();
         if (world == null || item == null || range < 1) {
@@ -120,6 +168,21 @@ public final class ContainerSearch {
                 }
             }
         }
+        if (options.itemFrames) {
+            for (Entity entity : world.getNearbyEntities(center, range, range, range)) {
+                if (!(entity instanceof ItemFrame) || !entity.isValid()) {
+                    continue;
+                }
+                Location at = entity.getLocation();
+                double dx = at.getX() - cx, dy = at.getY() - cy, dz = at.getZ() - cz;
+                double distSq = dx * dx + dy * dy + dz * dz;
+                ItemStack shown = ((ItemFrame) entity).getItem();
+                int count = shown == null ? 0 : count(new ItemStack[]{shown}, item, options.insideShulkerItems, 0);
+                if (count > 0 && distSq <= rangeSq) {
+                    hits.add(new Hit(world, at.getBlockX(), at.getBlockY(), at.getBlockZ(), "ITEM_FRAME", count, Math.sqrt(distSq)));
+                }
+            }
+        }
         Collections.sort(hits, new Comparator<Hit>() {
             @Override
             public int compare(Hit a, Hit b) {
@@ -136,6 +199,9 @@ public final class ContainerSearch {
             }
             if (c.equals("SHULKER_BOX") && blockType.endsWith("SHULKER_BOX")) {
                 return true;
+            }
+            if (c.equals("COPPER_CHEST") && blockType.endsWith("COPPER_CHEST")) {
+                return true;   // every oxidation stage and waxed kind (Minecraft 1.21.9+)
             }
         }
         return false;
@@ -164,8 +230,8 @@ public final class ContainerSearch {
         return null;
     }
 
-    /** How many of {@code item} are in these stacks, including inside shulker box items (one level deep). */
-    static int count(ItemStack[] contents, Material item, boolean insideShulkerItems, int depth) {
+    /** How many matching items are in these stacks, including inside shulker box items (one level deep). */
+    static int count(ItemStack[] contents, Matcher item, boolean insideShulkerItems, int depth) {
         int total = 0;
         if (contents == null) {
             return 0;
@@ -174,7 +240,7 @@ public final class ContainerSearch {
             if (stack == null || stack.getType() == Material.AIR) {
                 continue;
             }
-            if (stack.getType() == item) {
+            if (item.test(stack)) {
                 total += stack.getAmount();
             }
             if (insideShulkerItems && depth == 0 && stack.getType().name().endsWith("SHULKER_BOX")) {
@@ -184,7 +250,7 @@ public final class ContainerSearch {
         return total;
     }
 
-    private static int countInsideShulkerItem(ItemStack stack, Material item) {
+    private static int countInsideShulkerItem(ItemStack stack, Matcher item) {
         try {
             if (!stack.hasItemMeta()) {
                 return 0;

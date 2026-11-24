@@ -8,6 +8,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Lockable;
 import org.bukkit.block.ShulkerBox;
+import org.bukkit.entity.ItemFrame;
+import com.cosmiclogic.logiclib.paper.LogicVersion;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -79,33 +81,33 @@ final class SelfTest {
 
             Location from = new Location(world, x + 0.5, y + 0.5, z - 3.5);
 
-            List<ContainerSearch.Hit> diamonds = ContainerSearch.search(from, Material.DIAMOND, 8, options);
+            List<ContainerSearch.Hit> diamonds = ContainerSearch.search(from, ContainerSearch.of(Material.DIAMOND), 8, options);
             checks++;
             expect(problems, "diamond containers", expectedDiamondContainers, diamonds.size());
             checks++;
             expect(problems, "diamond count", expectedDiamonds, total(diamonds));
 
-            List<ContainerSearch.Hit> emeralds = ContainerSearch.search(from, Material.EMERALD, 8, options);
+            List<ContainerSearch.Hit> emeralds = ContainerSearch.search(from, ContainerSearch.of(Material.EMERALD), 8, options);
             checks++;
             expect(problems, "emeralds inside a shulker box item", 3, total(emeralds));
 
-            ContainerSearch.Options noNested = new ContainerSearch.Options(options.containers, false, options.includeLocked);
+            ContainerSearch.Options noNested = new ContainerSearch.Options(options.containers, false, options.includeLocked, true);
             checks++;
             expect(problems, "emeralds with nested search off", 0,
-                    ContainerSearch.search(from, Material.EMERALD, 8, noNested).size());
+                    ContainerSearch.search(from, ContainerSearch.of(Material.EMERALD), 8, noNested).size());
 
             checks++;
             expect(problems, "gold (not stored anywhere)", 0,
-                    ContainerSearch.search(from, Material.GOLD_INGOT, 8, options).size());
+                    ContainerSearch.search(from, ContainerSearch.of(Material.GOLD_INGOT), 8, options).size());
 
-            ContainerSearch.Options chestsOnly = new ContainerSearch.Options(Arrays.asList("CHEST"), true, options.includeLocked);
+            ContainerSearch.Options chestsOnly = new ContainerSearch.Options(Arrays.asList("CHEST"), true, options.includeLocked, true);
             checks++;
             expect(problems, "diamond containers when only chests are searched", 1,
-                    ContainerSearch.search(from, Material.DIAMOND, 8, chestsOnly).size());
+                    ContainerSearch.search(from, ContainerSearch.of(Material.DIAMOND), 8, chestsOnly).size());
 
             checks++;
             expect(problems, "far chest found with a bigger range", expectedDiamondContainers + 1,
-                    ContainerSearch.search(from, Material.DIAMOND, 24, options).size());
+                    ContainerSearch.search(from, ContainerSearch.of(Material.DIAMOND), 24, options).size());
 
             checks++;
             expectTrue(problems, "item name 'minecraft:diamond'", ItemNames.find("minecraft:diamond") == Material.DIAMOND);
@@ -121,14 +123,129 @@ final class SelfTest {
             Block locked = place(world, x, y, z - 6, Material.CHEST, placed);
             inventory(locked).addItem(new ItemStack(Material.DIAMOND, 1));
             if (lock(locked)) {
-                ContainerSearch.Options noLocked = new ContainerSearch.Options(options.containers, true, false);
+                ContainerSearch.Options noLocked = new ContainerSearch.Options(options.containers, true, false, true);
                 checks++;
                 expect(problems, "locked chest skipped without bypass", expectedDiamondContainers,
-                        ContainerSearch.search(from, Material.DIAMOND, 8, noLocked).size());
+                        ContainerSearch.search(from, ContainerSearch.of(Material.DIAMOND), 8, noLocked).size());
                 checks++;
                 expect(problems, "locked chest found with bypass", expectedDiamondContainers + 1,
-                        ContainerSearch.search(from, Material.DIAMOND, 8, options).size());
+                        ContainerSearch.search(from, ContainerSearch.of(Material.DIAMOND), 8, options).size());
             }
+
+            // 1.1.0: names, tags, item frames, ender chest, copper chests, other worlds, glow, help.
+            ItemStack oreBox = shulkerWith(Material.IRON_INGOT, 5);
+            org.bukkit.inventory.meta.ItemMeta boxMeta = oreBox.getItemMeta();
+            boxMeta.setDisplayName("Ore Box");
+            oreBox.setItemMeta(boxMeta);
+            chestInv.addItem(oreBox);
+            checks++;
+            expect(problems, "name search finds the renamed \"Ore Box\"", 1, total(ContainerSearch.search(from, ContainerSearch.named("ore box"), 8, options)));
+            checks++;
+            expect(problems, "name search \"iron\" finds the iron inside it", 5, total(ContainerSearch.search(from, ContainerSearch.named("iron"), 8, options)));
+
+            if (Tags.supported()) {
+                chestInv.addItem(new ItemStack(Material.getMaterial("OAK_LOG"), 6));
+                ContainerSearch.Matcher logs = Tags.matcher("#logs");
+                checks++;
+                expectTrue(problems, "tag #logs exists", logs != null);
+                if (logs != null) {
+                    checks++;
+                    expect(problems, "/find #logs finds 6 oak logs", 6, total(ContainerSearch.search(from, logs, 8, options)));
+                }
+                checks++;
+                expectTrue(problems, "unknown tag is refused", Tags.matcher("#no_such_tag_here") == null);
+                checks++;
+                expectTrue(problems, "tag label", Tags.label("#minecraft:logs").equals("#logs"));
+                checks++;
+                expectTrue(problems, "tag suggestions for #lo", Tags.suggest("#lo", 20).contains("#logs"));
+            } else {
+                checks++;
+                expectTrue(problems, "tags only missing before 1.13", LogicVersion.current().isBelow(1, 13, 0));
+            }
+
+            Block wall = place(world, x - 2, y + 2, z + 1, Material.STONE, placed);
+            ItemFrame frame = null;
+            try {
+                frame = world.spawn(new Location(world, x - 2, y + 2, z), ItemFrame.class);
+                frame.setItem(new ItemStack(Material.COMPASS));
+                Material shown = frame.getItem().getType();
+                List<ContainerSearch.Hit> clocks = ContainerSearch.search(from, ContainerSearch.of(shown), 8, options);
+                checks++;
+                expectTrue(problems, "item in an item frame", clocks.size() == 1 && clocks.get(0).blockType.equals("ITEM_FRAME"));
+                checks++;
+                expect(problems, "item frames off", 0, ContainerSearch.search(from, ContainerSearch.of(shown), 8,
+                        new ContainerSearch.Options(options.containers, true, true, false)).size());
+            } catch (Throwable t) {
+                problems.add("item frame test: " + t);
+            } finally {
+                if (frame != null) {
+                    frame.remove();
+                }
+            }
+
+            Inventory enderLike = Bukkit.createInventory(null, 27);
+            enderLike.addItem(new ItemStack(Material.DIAMOND, 9));
+            enderLike.addItem(shulkerWith(Material.DIAMOND, 2));
+            checks++;
+            expect(problems, "ender chest count (with a shulker box item)", 11, ContainerSearch.count(enderLike, ContainerSearch.of(Material.DIAMOND), true));
+
+            Material copper = Material.getMaterial("COPPER_CHEST");
+            if (copper != null) {
+                inventory(place(world, x, y, z - 2, copper, placed)).addItem(new ItemStack(Material.LAPIS_LAZULI, 3));
+                checks++;
+                expect(problems, "copper chests are searched by default", 3,
+                        total(ContainerSearch.search(from, ContainerSearch.of(Material.LAPIS_LAZULI), 8, options)));
+            }
+
+            World nether = null;
+            for (World w : Bukkit.getWorlds()) {
+                if (w.getEnvironment() == World.Environment.NETHER) {
+                    nether = w;
+                }
+            }
+            if (nether != null) {
+                nether.getChunkAt(0, 0).load(true);
+                Block netherChest = place(nether, 8, 100, 8, Material.CHEST, placed);
+                inventory(netherChest).addItem(new ItemStack(Material.GOLD_INGOT, 9));
+                checks++;
+                expect(problems, "gold in a Nether chest, searched in the Nether", 9,
+                        total(ContainerSearch.search(new Location(nether, 8.5, 100.5, 5.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options)));
+                checks++;
+                expect(problems, "the Nether chest is not found from the overworld", 0,
+                        ContainerSearch.search(new Location(world, 8.5, 100.5, 5.5), ContainerSearch.of(Material.GOLD_INGOT), 8, options).size());
+            }
+
+            checks++;
+            expectTrue(problems, "glow through walls exactly on 1.19.4+", Glow.supported() == LogicVersion.current().isAtLeast(1, 19, 4));
+            if (Glow.supported()) {
+                org.bukkit.entity.Entity glow = Glow.spawn(chest, org.bukkit.Color.LIME);
+                checks++;
+                expectTrue(problems, "glow entity spawned, hidden from other players", glow != null && Glow.hiddenByDefault(glow));
+                if (glow != null) {
+                    glow.remove();
+                    checks++;
+                    expectTrue(problems, "glow entity removed", !glow.isValid());
+                }
+            }
+
+            checks++;
+            expectTrue(problems, "LogicLib Plugin version check", !StashRadarPlugin.logicLibIsNewEnough("0.1.0")
+                    && StashRadarPlugin.logicLibIsNewEnough("0.2.0") && StashRadarPlugin.logicLibIsNewEnough("0.10.1"));
+            org.bukkit.configuration.MemoryConfiguration old = new org.bukkit.configuration.MemoryConfiguration();
+            old.set("containers", new ArrayList<String>(Arrays.asList("CHEST", "BARREL")));
+            org.bukkit.configuration.MemoryConfiguration barrelsOnly = new org.bukkit.configuration.MemoryConfiguration();
+            barrelsOnly.set("containers", new ArrayList<String>(Arrays.asList("BARREL")));
+            checks++;
+            expectTrue(problems, "config upgrade adds copper chests, keeps the owner's choices",
+                    StashRadarPlugin.upgrade(old) && old.getStringList("containers").contains("COPPER_CHEST")
+                            && StashRadarPlugin.upgrade(barrelsOnly) && !barrelsOnly.getStringList("containers").contains("COPPER_CHEST")
+                            && !StashRadarPlugin.upgrade(old));
+            checks++;
+            expectTrue(problems, "the loaded config.yml is upgraded", plugin.getConfig().getInt("config-version", 0) == StashRadarPlugin.CONFIG_VERSION);
+            checks++;
+            expectTrue(problems, "/find help runs", Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "find help"));
+            checks++;
+            expectTrue(problems, "/stashradar help runs", Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "stashradar help"));
 
             // Config file, permission defaults (op vs everyone) and /stashradar reload.
             checks++;

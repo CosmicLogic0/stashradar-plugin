@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  LOGICLIB: "0.1.0"   # read-only dependency, taken from CosmicLogic0/logiclib-paper branch "dist"
+  LOGICLIB: "0.2.0"   # read-only dependency, taken from CosmicLogic0/logiclib-paper branch "dist"
 
 jobs:
   build:

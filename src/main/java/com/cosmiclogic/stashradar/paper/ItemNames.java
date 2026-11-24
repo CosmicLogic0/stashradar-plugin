@@ -97,7 +97,12 @@ public final class ItemNames {
 
     /** "oak_log" -> "Oak Log" */
     public static String pretty(Material material) {
-        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
+        return prettyName(material.name());
+    }
+
+    /** "TRAPPED_CHEST" -> "Trapped Chest" */
+    public static String prettyName(String name) {
+        String[] parts = name.toLowerCase(Locale.ROOT).split("_");
         StringBuilder sb = new StringBuilder();
         for (String part : parts) {
             if (part.isEmpty()) {
